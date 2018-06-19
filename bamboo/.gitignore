@@ -1,0 +1,16 @@
+/.java/fonts/
+.IntelliJIdea*/system
+.IntelliJIdea*/config/plugins/availables.xml*
+.IntelliJIdea*/config/disabled_*.txt
+.IntelliJIdea*/config/port.lock
+.IntelliJIdea*/config/options/usage.statistics.xml
+.IntelliJIdea*/config/options/updates.xml
+.IntelliJIdea*/config/options/debugger.xml
+.IntelliJIdea*/config/options/dimensions.xml
+.IntelliJIdea*/config/options/ide.general.xml
+.IntelliJIdea*/config/options/images.support.xml
+.IntelliJIdea*/config/options/laf.xml
+.IntelliJIdea*/config/options/recentProjects.xml
+.IntelliJIdea*/config/options/statistics.actions.xml
+.IntelliJIdea*/config/options/statistics.shortcuts.xml
+.IntelliJIdea*/config/options/stubIndex.xml

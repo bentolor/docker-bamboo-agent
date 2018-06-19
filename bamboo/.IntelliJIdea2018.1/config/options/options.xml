@@ -1,0 +1,11 @@
+<application>
+  <component name="PropertiesComponent">
+    <property name="HbAutoCollapseBlocks" value="disabled" />
+    <property name="PLUGIN_FILTER" value="vue&#10;node&#10;karm&#10;handle" />
+    <property name="android-component-compatibility-check" value="1527603124782" />
+    <property name="installed.kotlin.plugin.version" value="1.2.31-release-IJ2018.1-1" />
+    <property name="jdk.selected.JAVA_MODULE" value="1.8" />
+    <property name="lastTip" value="1" />
+    <property name="ts.lib.d.ts.version" value="2.8.1" />
+  </component>
+</application>

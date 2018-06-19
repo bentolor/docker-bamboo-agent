@@ -1,0 +1,151 @@
+= Bamboo Agent using Docker
+
+This repository contains a `Dockerfile` to build a fully-fledged, 
+self-contained Bamboo Agent image targeted at Java-/Web-based development.
+
+It currently features:
+
+* JDK 1.8 and 1.10, Groovy, 
+* Node 4.x, 6.x and 8.x
+* Maven 3, Ant 1.8, 1.9 and 1.10
+* (Headless) chromium browser and chromedriver
+* `grunt-cli`, yarn and npm 
+* IntelliJ IDEA 2018.1 and link:https://github.com/bentolor/idea-cli-inspector[`idea-cli-inspector`]
+
+It installs a set of dependencies and declares them under custom capability
+names. So overall you probably want to (heavily) adjust/trim/expand this
+image according to your needs.
+
+== Building the image
+    
+Simply run the following command. Please note: The prefix `myregistry.mycorp.com:5000` 
+is there assuming that you have a private registry where you will publish you images
+for the clients to pick it up. Simply run
+
+    sudo docker build --pull -t myregistry.mycorp.com:5000/bentolor-bamboo-agent .
+
+then you can push the newly build image with the following command
+
+    sudo docker push myregistry.mycorp.com:5000/bentolor-bamboo-agent
+
+into your registry running on `myregistry.mycorp.com:5000`.
+
+NOTE:: Please note, that these images tend to get quite large. So probably you want 
+be able to delete outdated images from you registry. This can get a little complicated,
+so you might be aware upfront how to do this.
+
+== Running a new Agent
+Using out published docker image it's easy to start new instances of the Docker ("Container") 
+as follows: 
+
+     sudo docker run -d --cap-add SYS_ADMIN --name bentolor-bamboo-agent -h docker-host1 -e BAMBOO_SERVER=https://bamboo.mycorp.com:1234/ myregistry.mycorp.com:5000/bentolor-bamboo-agent
+
+The hostname is what you will see later-on in the Bamboo UI. If you do not pass any value 
+here, Bamboo will generate a random ID on every container creation.
+
+INFO:: The option `--cap-add SYS_ADMIN` is only necessary for (Headless) operation of 
+the Chromium  browser. Otherwise chromium will crash, as it will fail to create a sandbox
+with  
+`Failed to move to new namespace: PID namespaces supported, Network namespace supported, but failed: errno = Operation not permitted`
+
+.Controlling the agent
+You can start and stop the container with the usual docker commands:
+
+     sudo docker stop bentolor-bamboo-agent
+     sudo docker start bentolor-bamboo-agent
+
+Stop and delete the instance with the following command
+
+     sudo docker kill bentolor-bamboo-agent
+     sudo docker rm bentolor-bamboo-agent
+
+== How to (automatically) redeploy an updated image
+
+One could use some big-class solutions like Kubernetes or OpenShift of the container
+orchistration. As a typically build agent will probably run on a limited set of bare
+metal computers (probably some old laptops & PCs no longer in use) I find a smaller
+solution better. I found watchtower to be the most intriguing solution sof this purpose:
+It can periodically check for updates of the current running containers and the 
+automatically stop, pull and restart them with the exact same options as before.
+
+It's as simply as:
+
+    sudo docker run -d \
+        --name watchtower \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        v2tec/watchtower \
+        --schedule "0 0-59/3 9-19 * * MON-FRI" \
+        --cleanup
+
+This will check every 3 minutes between 9am and 7pm between monday and friday for
+updates and then redeploy your agent (and other images).
+
+See link:https://github.com/v2tec/watchtower[the manual of watchtower] to learn more
+about the options you have here.
+
+
+== Maintaining the agent
+
+Simply adjust & update the `Dockerfile` and `bamboo-capabilities.properties` accordingly.
+
+=== IDEA IntelliJ Handling
+
+The `Dockerfile` downloads and installs IntelliJ IDEA as `.tar.gz`. To get it 
+running (headlessly) IntelliJ needs some sort of minimum configuration like 
+required plugins or licence server definition. 
+
+Therefore you'll find a directory `bamboo/.IntelliJIdea2018.1`
+which gets copied into the container.
+
+.Creating the minimal configuration from scratch
+1. Start and definde licenceserver
+2. Define JDKs within IDEA (*important!*)
+3. Add optional plugins like handlebars, js-karma, NodeJS, Scala, VueJS, …
+4. Hand-pick the required files in bamboo/.IntelliJIdea2018.1 and add them to Git
+5. Delete all unversionated files (i.e. via `git clean -fdx`)
+
+.Interactively running IDEA inside the container for this purpose
+To create or maintain the first configuration from a Linux-based host I simply
+forward my X11-connection into a newly started host and do the necessary adjustemts
+interactivly via: 
+
+    xhost +
+    docker run -it --rm --name debug-bamboo-agent -h bentolor-bamboo-agent \
+               --dns 8.8.8.8 \
+               -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix \
+               -v `pwd`/bamboo/.IntelliJIdea2018.1:/root/.IntelliJIdea2018.1 \
+               -v `pwd`/bamboo/.java:/root/.java  bentolor-bamboo-agent  \
+               /srv/idea.latest/bin/idea.sh
+    sudo chown -R $USER:$USER .
+    git add -u
+    git commit
+
+
+== FAQ
+
+[qanda]
+Something went wrong on the agent. How can I diagnoes it::
+ Simply try to reproduce the steps take by you build plan inside the container, i.e. with:
+----
+docker exec -it myagent /bin/bash
+----
+
+I'm having issues to access my local licencse server or other domain names::
+Probably your container uses a wrong DNS configuration. Create and adjust a 
+ `/etc/docker/daemon.json` to tell you Docker containers about the correct
+ DNS servers:
+----
+{
+    "dns": ["192.168.144.18", "8.8.8.8"]
+}
+----
+
+I can't push or pull from my local registry `myregistry.mycorp.com:5000`::
+You are probably using an insecure registry with no valid SSL certificate. 
+Therefore you must add the following stance into `/etc/docker/daemon.json` 
+to support so called _insecure registries_.
+----
+{
+    "insecure-registries" : ["myregistry.mycorp.com:5000"]
+}
+----
