@@ -38,7 +38,7 @@ so you might be aware upfront how to do this.
 Using out published docker image it's easy to start new instances of the Docker ("Container") 
 as follows: 
 
-     sudo docker run -d --cap-add SYS_ADMIN --name bentolor-bamboo-agent -h docker-host1 -e BAMBOO_SERVER=https://bamboo.mycorp.com:1234/ myregistry.mycorp.com:5000/bentolor-bamboo-agent
+     sudo docker run -d --cap-add SYS_ADMIN --init --name bentolor-bamboo-agent -h docker-host1 -e BAMBOO_SERVER=https://bamboo.mycorp.com:1234/ myregistry.mycorp.com:5000/bentolor-bamboo-agent
 
 The hostname is what you will see later-on in the Bamboo UI. If you do not pass any value 
 here, Bamboo will generate a random ID on every container creation.
@@ -47,6 +47,9 @@ INFO:: The option `--cap-add SYS_ADMIN` is only necessary for (Headless) operati
 the Chromium  browser. Otherwise chromium will crash, as it will fail to create a sandbox
 with  
 `Failed to move to new namespace: PID namespaces supported, Network namespace supported, but failed: errno = Operation not permitted`
+The `--init` advises Docker to start a dedicated init process within the containers, so that 
+processes whose parent died get reap. Otherwise you could see lot of defunct zombie processes
+i.e. of `chrome <defunct>` or `node <defunct>`.
 
 .Controlling the agent
 You can start and stop the container with the usual docker commands:
